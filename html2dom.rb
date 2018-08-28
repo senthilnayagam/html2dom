@@ -3,7 +3,7 @@
 require 'rubygems'
 require 'nokogiri'
 require 'json'
-
+require 'pp'
 
 
 
@@ -43,12 +43,28 @@ end
 else
   usage("input file does not exist")
 end
-
-doc = Nokogiri::HTML(open(input_file))
-  doc.at_css("html").traverse do |node|
+data = []
+content = File.open(input_file).read
+# strip empty tabs \t and \r
+#content = content.gsub("\t","")
+#content = content.gsub("\r","")
+#content = content.gsub(/[\n]+/, "\n")
+content = content.gsub(/\s+/, ' ')
+doc = Nokogiri::HTML(content)
+  #doc.at_css("html").traverse do |node|
+  doc.at_css("body").traverse do |node|
     if node.text? && !node.content.empty?
+        unless node.content == "\n" || node.content == ' ' 
+          data = data + [{"dom"=>node.path.to_s ,"value"=>node.content}]
+        end
       node.content =  node.content +  "<!--" + node.path.to_s +  "-->"
+
     end
   end
 
 File.open(output_file, 'w') {|f| f.write(doc.to_s.gsub("&gt;",">").gsub("&lt;","<")) }
+
+json_file = output_file + ".json"
+File.open(json_file, 'w') {|f| f.write(JSON.pretty_generate(data)) }
+
+pp data
